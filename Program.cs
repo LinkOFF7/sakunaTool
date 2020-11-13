@@ -29,7 +29,7 @@ namespace sakunaTool
                 var filenameSize = 96;
                 var header = reader.ReadInt32();
                 var version = reader.ReadInt16();
-                var encryptionType = reader.ReadInt16(); //0x00 - decrypted, 0x02 - LZ4
+                var encryptionType = reader.ReadInt16(); //00 - decrypted, 02 - LZ4
                 var filesCount = reader.ReadInt32();
                 var uSize = reader.ReadInt32();
                 var savePosF = reader.BaseStream.Position;
