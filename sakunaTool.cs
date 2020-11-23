@@ -164,6 +164,7 @@ namespace sakunaTool
 
         static void ArcPack (string inputDir, string arcFile, bool compress)
         {
+            //WORK IN PROGRESS!!! Not working yet!
             int index = inputDir.Length + 1;
             string[] fileList = Directory.GetFiles(inputDir, "*.*", SearchOption.AllDirectories);
             byte[] header = Encoding.UTF8.GetBytes("TGP0");
@@ -198,7 +199,7 @@ namespace sakunaTool
                     byte[] stringSize = new byte[96];
                     Array.Copy(buffer, 0, stringSize, 0, buffer.Length);
                     writer.Write(stringSize);
-                    writer.Write(0);
+                    writer.Write(0); // Here is offset but i can't get it
                     writer.Write(GetSize(fileList[i]));
                     writer.Write(1);
                     writer.Write(0);
