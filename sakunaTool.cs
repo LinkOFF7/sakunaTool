@@ -1,4 +1,4 @@
-﻿using LZ4;
+using LZ4;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -156,17 +156,17 @@ namespace sakunaTool
             return b;
         }
 
-        static int GetSize(string fileList)
+        static uint GetSize(string fileList)
         {
             FileInfo info = new FileInfo(fileList);
-            return Convert.ToInt32(info.Length);
+            return Convert.ToUInt32(info.Length);
         }
 
         static void ArcPack (string inputDir, string arcFile, bool compress)
         {
             //WORK IN PROGRESS!!! Not working yet!
             int index = inputDir.Length + 1;
-            int offset = 0;
+            uint offset = 0;
             string[] fileList = Directory.GetFiles(inputDir, "*.*", SearchOption.AllDirectories);
             byte[] header = Encoding.UTF8.GetBytes("TGP0");
             Int16 version = 3;
@@ -192,7 +192,6 @@ namespace sakunaTool
                 else if(!compress) writer.Write(noCompression);
                 writer.Write(filesCount);
                 writer.Write(uncompressedSize);
-
                 for (int i = 0; i < filesCount; i++)
                 {
                     string fileName = fileList[i].Remove(0, index);
@@ -200,10 +199,9 @@ namespace sakunaTool
                     byte[] stringSize = new byte[96];
                     Array.Copy(fileNameArray, 0, stringSize, 0, fileNameArray.Length);
                     writer.Write(stringSize);
-                    int size = GetSize(fileList[i]);
-                    if (i != 0) offset += size; // try to get offset
-
-                    writer.Write(offset); // Here is offset but i can't get it
+                    uint size = GetSize(fileList[i]);
+                    offset += size; // need for (i != 0)
+                    writer.Write(offset); //need to get correct offset
                     writer.Write(size);
                     writer.Write(1);
                     writer.Write(0);
