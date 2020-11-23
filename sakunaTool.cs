@@ -1,9 +1,9 @@
-﻿using System;
+﻿using LZ4;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using LZ4;
 
 namespace sakunaTool
 {
@@ -27,7 +27,7 @@ namespace sakunaTool
                 }
                 else
                 {
-                    ArcPack(args[1], args[1]+".arc", true);
+                    ArcPack(args[1], args[2], true);
                 }
             }
         }
@@ -119,7 +119,7 @@ namespace sakunaTool
         }
         static byte[] CompressLZ4(byte[] inputArray)
         {
-            var cData = LZ4Codec.EncodeHC(inputArray, 0, inputArray.Length);
+            var cData = LZ4.LZ4Codec.EncodeHC(inputArray, 0, inputArray.Length);
             return cData;
         }
 
@@ -166,6 +166,7 @@ namespace sakunaTool
         {
             //WORK IN PROGRESS!!! Not working yet!
             int index = inputDir.Length + 1;
+            int offset = 0;
             string[] fileList = Directory.GetFiles(inputDir, "*.*", SearchOption.AllDirectories);
             byte[] header = Encoding.UTF8.GetBytes("TGP0");
             Int16 version = 3;
@@ -194,13 +195,16 @@ namespace sakunaTool
 
                 for (int i = 0; i < filesCount; i++)
                 {
-                    string fileList1 = fileList[i].Remove(0, index);
-                    byte[] buffer = Encoding.UTF8.GetBytes(fileList1);
+                    string fileName = fileList[i].Remove(0, index);
+                    byte[] fileNameArray = Encoding.UTF8.GetBytes(fileName);
                     byte[] stringSize = new byte[96];
-                    Array.Copy(buffer, 0, stringSize, 0, buffer.Length);
+                    Array.Copy(fileNameArray, 0, stringSize, 0, fileNameArray.Length);
                     writer.Write(stringSize);
-                    writer.Write(0); // Here is offset but i can't get it
-                    writer.Write(GetSize(fileList[i]));
+                    int size = GetSize(fileList[i]);
+                    if (i != 0) offset += size; // try to get offset
+
+                    writer.Write(offset); // Here is offset but i can't get it
+                    writer.Write(size);
                     writer.Write(1);
                     writer.Write(0);
                 }
