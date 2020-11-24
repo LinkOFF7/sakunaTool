@@ -38,12 +38,6 @@ namespace sakunaTool
                     ArcPack(args[1], args[2], false);
                     return;
                 }
-                
-            }
-            else if (args[0] == "-p")
-            {
-                ArcPack(args[1], args[2], false);
-                return;
             }
         }
 
