@@ -138,7 +138,7 @@ namespace sakunaTool
             Console.WriteLine("by LinkOFF");
             Console.WriteLine("");
             Console.WriteLine("Usage:");
-            Console.WriteLine(" sakunaTool.exe [argument] <archive>");
+            Console.WriteLine(" sakunaTool.exe [argument] <archive> [additional parameter]");
             Console.WriteLine("");
             Console.WriteLine("Arguments:");
             Console.WriteLine(" -e:      Extracts all files");
@@ -146,12 +146,13 @@ namespace sakunaTool
             Console.WriteLine(" -i:      Info about archive");
             Console.WriteLine("");
             Console.WriteLine("Additional parameters:");
-            Console.WriteLine(" -nocompress:      Do not compress data during import. Compress is enabled by default.");
+            Console.WriteLine(" -nocompress:      Do not compress data during import.");
+            Console.WriteLine(" -compress:        Compress data during import.");
             Console.WriteLine("");
             Console.WriteLine("Examples:");
-            Console.WriteLine(@" sakunaTool.exe -e data01.arc             Extracts contents of data01.arc to folder /data01/");
-            Console.WriteLine(@" sakunaTool.exe -p data01.arc data01\     Packs the contents of data01 to data01.cpk");
-            Console.WriteLine(@" sakunaTool.exe -i data01.arc             Show information about archive (size, compression, files...)");
+            Console.WriteLine(@" sakunaTool.exe -e data01.arc                       Extracts contents of data01.arc to folder /data01/");
+            Console.WriteLine(@" sakunaTool.exe -p data01 data01.arc -compress      Packs the contents of data01 to data01.cpk with compression");
+            Console.WriteLine(@" sakunaTool.exe -i data01.arc                       Show information about archive (size, compression, files...)");
         }
 
         static long GetDirectorySize(string p)
