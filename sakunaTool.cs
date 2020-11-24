@@ -1,4 +1,4 @@
-using LZ4;
+﻿using LZ4;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,24 +11,39 @@ namespace sakunaTool
     {
         static void Main(string[] args)
         {
-            if (args.Length == 0)
+            if (args == null || args.Length < 2)
             {
                 PrintUsage();
                 return;
             }
-            else if (args[0] == "-e") ArcExtract(args[1]);
-            else if (args[0] == "-l") List(args[1]);
+            else if (args[0] == "-e")
+            {
+                ArcExtract(args[1]);
+                return;
+            }
+            else if (args[0] == "-i") 
+            {
+                Info(args[1]);
+                return;
+            } 
             else if (args[0] == "-p")
             {
-                if (args.Length == 0)
-                {
-                    PrintUsage();
-                    return;
-                }
-                else
+                if (args[3] == "-compress")
                 {
                     ArcPack(args[1], args[2], true);
+                    return;
                 }
+                else if (args[3] == "-nocompress")
+                {
+                    ArcPack(args[1], args[2], false);
+                    return;
+                }
+                
+            }
+            else if (args[0] == "-p")
+            {
+                ArcPack(args[1], args[2], false);
+                return;
             }
         }
 
@@ -125,8 +140,8 @@ namespace sakunaTool
 
         static void PrintUsage()
         {
-            Console.WriteLine("Sakuna of Rice and Ruin .arc extraction tool v0.2 (Edelweiss Engine)");
-            Console.WriteLine("Created by LinkOFF");
+            Console.WriteLine("Sakuna of Rice and Ruin .arc export and import tool v0.9");
+            Console.WriteLine("by LinkOFF");
             Console.WriteLine("");
             Console.WriteLine("Usage:");
             Console.WriteLine(" sakunaTool.exe [argument] <archive>");
@@ -134,14 +149,15 @@ namespace sakunaTool
             Console.WriteLine("Arguments:");
             Console.WriteLine(" -e:      Extracts all files");
             Console.WriteLine(" -p:      Packages a folder to a ARC");
-            Console.WriteLine(" -l:      List all files in archive");
+            Console.WriteLine(" -i:      Info about archive");
             Console.WriteLine("");
             Console.WriteLine("Additional parameters:");
-            Console.WriteLine(" -nocompress:      Do not compress data during repack. Compress is on by default.");
+            Console.WriteLine(" -nocompress:      Do not compress data during import. Compress is enabled by default.");
             Console.WriteLine("");
             Console.WriteLine("Examples:");
             Console.WriteLine(@" sakunaTool.exe -e data01.arc             Extracts contents of data01.arc to folder /data01/");
             Console.WriteLine(@" sakunaTool.exe -p data01.arc data01\     Packs the contents of data01 to data01.cpk");
+            Console.WriteLine(@" sakunaTool.exe -i data01.arc             Show information about archive (size, compression, files...)");
         }
 
         static long GetDirectorySize(string p)
@@ -164,7 +180,6 @@ namespace sakunaTool
 
         static void ArcPack (string inputDir, string arcFile, bool compress)
         {
-            //WORK IN PROGRESS!!! Not working yet!
             int index = inputDir.Length + 1;
             uint offset = 0;
             string[] fileList = Directory.GetFiles(inputDir, "*.*", SearchOption.AllDirectories);
@@ -185,7 +200,6 @@ namespace sakunaTool
 
             using (BinaryWriter writer = new BinaryWriter(new FileStream(arcFile, FileMode.Create)))
             {
-                Console.WriteLine("Compressing...");
                 writer.Write(header);
                 writer.Write(version);
                 if (compress) writer.Write(lz4Compression);
@@ -200,26 +214,28 @@ namespace sakunaTool
                     Array.Copy(fileNameArray, 0, stringSize, 0, fileNameArray.Length);
                     writer.Write(stringSize);
                     uint size = GetSize(fileList[i]);
-                    offset += size; // need for (i != 0)
-                    writer.Write(offset); //need to get correct offset
+                    writer.Write(offset);
                     writer.Write(size);
-                    writer.Write(1);
                     writer.Write(0);
+                    writer.Write(0);
+                    offset += size;
                 }
                 if (compress)
                 {
+                    Console.WriteLine("Compressing...");
                     byte[] compressedData = CompressLZ4(uncompressedData);
                     writer.Write(compressedData);
                 }
                 else if (!compress)
                 {
+                    Console.WriteLine("Repacking...");
                     writer.Write(uncompressedData);
                 }
                 Console.WriteLine("Done!");
             }
         }
 
-        public static byte[] ReadToEnd(System.IO.Stream stream)
+        static byte[] ReadToEnd(System.IO.Stream stream)
         {
             long originalPosition = 0;
 
@@ -271,17 +287,30 @@ namespace sakunaTool
             }
         }
 
-        static void List (string arcFile)
+        static void Info (string arcFile)
         {
             BinaryReader reader = new BinaryReader(File.OpenRead(arcFile));
-            reader.BaseStream.Seek(0x08, SeekOrigin.Begin);
-            var files = reader.ReadInt32();
-            reader.BaseStream.Seek(0x10, SeekOrigin.Begin);
-            string[] filenames = GetFilenames(reader, files);
-            foreach (var filename in filenames)
+            var header = Encoding.UTF8.GetString(reader.ReadBytes(4));
+            if (header != "TGP0")
             {
-                Console.WriteLine(filename.ToString());
+                Console.WriteLine($@"Incorrect magic: {header}. This tool works only with TGP0 magic!");
+                return;
             }
+            var version = reader.ReadInt16();
+            var compression = reader.ReadInt16();
+            var files = reader.ReadInt32();
+            var uncompressedSize = reader.ReadInt32();
+            reader.BaseStream.Seek(0x78, SeekOrigin.Begin);
+            var flag = reader.ReadByte();
+
+            Console.WriteLine($@"Magic:                         {header}");
+            Console.WriteLine($@"Version:                       {version}");
+            if (compression == 2) Console.WriteLine($@"Compression type:              Compressed (LZ4)");
+            else if (compression == 0) Console.WriteLine($@"Compression type:              No compression");
+            Console.WriteLine($@"Ucompressed data block size:   {uncompressedSize} bytes");
+            Console.WriteLine($@"Files flag:                    {flag}");
+            Console.WriteLine("");
+            Console.WriteLine("Note: Files flag may be important during repacking. This tool always repack with flag '0'!");
         }
 
         static string[] GetFilenames(BinaryReader reader, int files)
