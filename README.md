@@ -1,2 +1,2 @@
 # sakunaTool
-Tool for extraction and repacking .arc files of Sakuna of Rice and Ruin game for PC.
+Tool for extraction and repacking .arc archivies of Sakuna of Rice and Ruin game.
