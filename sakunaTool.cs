@@ -49,6 +49,8 @@ namespace sakunaTool
             using (var reader = new BinaryReader(File.OpenRead(arcFile)))
             {
                 var fileNameWO = Path.GetFileNameWithoutExtension(arcFile);
+                var tempFir = $@"{Path.GetTempPath()}Vsn_Sakuna\{fileNameWO}";
+                if (Directory.Exists(tempFir)) Directory.Delete(tempFir, true);
                 var filenameSize = 96;
                 var header = reader.ReadInt32();
                 var version = reader.ReadInt16();
@@ -78,12 +80,14 @@ namespace sakunaTool
                         var folderName = Path.GetDirectoryName(filename);
                         var offset = reader.ReadInt32();
                         var size = reader.ReadInt32();
-                        var unk1 = reader.ReadInt32();
+                        var flag = reader.ReadInt32();
                         var unk2 = reader.ReadInt32();
+                        CreateFlag(flag, fileNameWO);
                         var savePos = reader.BaseStream.Position;
                         dataReader.BaseStream.Seek(offset, SeekOrigin.Begin);
                         var file = dataReader.ReadBytes(size);
                         Directory.CreateDirectory($@"{fileNameWO}\{folderName}");
+                        CreateSort(filename, fileNameWO);
                         Console.WriteLine($@"Extracting: {filename}");
                         File.WriteAllBytes($@"{fileNameWO}\{filename}", file);
                         reader.BaseStream.Seek(savePos, SeekOrigin.Begin);
@@ -106,12 +110,14 @@ namespace sakunaTool
                         var folderName = Path.GetDirectoryName(filename);
                         var offset = reader.ReadInt32();
                         var size = reader.ReadInt32();
-                        var unk1 = reader.ReadInt32();
+                        var flag = reader.ReadInt32();
                         var unk2 = reader.ReadInt32();
+                        CreateFlag(flag, fileNameWO);
                         var savePos = reader.BaseStream.Position;
                         dataReader.BaseStream.Seek(offset, SeekOrigin.Begin);
                         var file = dataReader.ReadBytes(size);
                         Directory.CreateDirectory($@"{fileNameWO}\{folderName}");
+                        CreateSort(filename, fileNameWO);
                         Console.WriteLine($@"Extracting: {filename}");
                         File.WriteAllBytes($@"{fileNameWO}\{filename}", file);
                         reader.BaseStream.Seek(savePos, SeekOrigin.Begin);
@@ -134,7 +140,7 @@ namespace sakunaTool
 
         static void PrintUsage()
         {
-            Console.WriteLine("Sakuna of Rice and Ruin .arc export and import tool v0.9");
+            Console.WriteLine("Sakuna of Rice and Ruin .arc export and import tool v0.9.1");
             Console.WriteLine("by LinkOFF");
             Console.WriteLine("");
             Console.WriteLine("Usage:");
@@ -147,12 +153,17 @@ namespace sakunaTool
             Console.WriteLine("");
             Console.WriteLine("Additional parameters:");
             Console.WriteLine(" -nocompress:      Do not compress data during import.");
-            Console.WriteLine(" -compress:        Compress data during import.");
+            Console.WriteLine(" -compress:        Compress the data during import.");
             Console.WriteLine("");
             Console.WriteLine("Examples:");
             Console.WriteLine(@" sakunaTool.exe -e data01.arc                       Extracts contents of data01.arc to folder /data01/");
             Console.WriteLine(@" sakunaTool.exe -p data01 data01.arc -compress      Packs the contents of data01 to data01.cpk with compression");
             Console.WriteLine(@" sakunaTool.exe -i data01.arc                       Show information about archive (size, compression, files...)");
+            Console.WriteLine("");
+            Console.WriteLine($@"This tool using temp folder for keep flags and sort info.");
+            Console.WriteLine($@"Path: {Path.GetTempPath()}Vsn_Sakuna\");
+            Console.WriteLine($@"If you get message with flags replacing by '0' during pack, extract original");
+            Console.WriteLine($@"arc archive once again! It created a flags and sort cache!");
         }
 
         static long GetDirectorySize(string p)
@@ -173,11 +184,28 @@ namespace sakunaTool
             return Convert.ToUInt32(info.Length);
         }
 
+        static string[] GetFileList(string localPath, string arcFile)
+        {
+            string[] fileList;
+            string arcFileWO = Path.GetFileNameWithoutExtension(arcFile);
+            string tempDir = $@"{Path.GetTempPath()}Vsn_Sakuna\{arcFileWO}";
+
+            if (Directory.Exists(tempDir))
+            {
+                return fileList = File.ReadAllLines($@"{tempDir}\Sort.Vsn");
+            }
+            else
+            {
+                return fileList = Directory.GetFiles(localPath, "*.*", SearchOption.AllDirectories);
+            }
+        }
+
         static void ArcPack (string inputDir, string arcFile, bool compress)
         {
+            string arcFileWO = Path.GetFileNameWithoutExtension(arcFile);
             int index = inputDir.Length + 1;
             uint offset = 0;
-            string[] fileList = Directory.GetFiles(inputDir, "*.*", SearchOption.AllDirectories);
+            string[] fileList = GetFileList(inputDir, arcFile);
             byte[] header = Encoding.UTF8.GetBytes("TGP0");
             Int16 version = 3;
             Int16 lz4Compression = 2;
@@ -203,6 +231,7 @@ namespace sakunaTool
                 writer.Write(uncompressedSize);
                 for (int i = 0; i < filesCount; i++)
                 {
+                    string flagFile = $@"{Path.GetTempPath()}\Vsn_Sakuna\{arcFileWO}\Flag.Vsn";
                     string fileName = fileList[i].Remove(0, index);
                     byte[] fileNameArray = Encoding.UTF8.GetBytes(fileName);
                     byte[] stringSize = new byte[96];
@@ -211,7 +240,16 @@ namespace sakunaTool
                     uint size = GetSize(fileList[i]);
                     writer.Write(offset);
                     writer.Write(size);
-                    writer.Write(0);
+                    if (File.Exists(flagFile))
+                    {
+                        string[] flags = File.ReadAllLines(flagFile);
+                        writer.Write(int.Parse(flags[i]));
+                    }
+                    else
+                    {
+                        Console.WriteLine($@"{fileName}: Flag replaced by '0'!");
+                        writer.Write(0);
+                    }
                     writer.Write(0);
                     offset += size;
                 }
@@ -295,30 +333,40 @@ namespace sakunaTool
             var compression = reader.ReadInt16();
             var files = reader.ReadInt32();
             var uncompressedSize = reader.ReadInt32();
-            reader.BaseStream.Seek(0x78, SeekOrigin.Begin);
-            var flag = reader.ReadByte();
 
             Console.WriteLine($@"Magic:                         {header}");
             Console.WriteLine($@"Version:                       {version}");
             if (compression == 2) Console.WriteLine($@"Compression type:              Compressed (LZ4)");
             else if (compression == 0) Console.WriteLine($@"Compression type:              No compression");
+            Console.WriteLine($@"Files:                         {files}");
             Console.WriteLine($@"Ucompressed data block size:   {uncompressedSize} bytes");
-            Console.WriteLine($@"Files flag:                    {flag}");
             Console.WriteLine("");
-            Console.WriteLine("Note: Files flag may be important during repacking. This tool always repack with flag '0'!");
+            Console.WriteLine($@"This tool using temp folder for keep flags and sort info.");
+            Console.WriteLine($@"Path: {Path.GetTempPath()}Vsn_Sakuna\");
+            Console.WriteLine($@"If you get message with flags replacing by '0' during pack, extract original");
+            Console.WriteLine($@"arc archive once again! It created a flags and sort cache!");
         }
 
-        static string[] GetFilenames(BinaryReader reader, int files)
+        static void CreateFlag(int flag, string fileName)
         {
-            int singleBlockSize = 96;
-            string[] filenames = new string[files];
-            for (int i = 0; i < files; i++)
-            {
-                var filename = Regex.Replace(Encoding.UTF8.GetString(reader.ReadBytes(singleBlockSize)), @"\0", "");
-                reader.BaseStream.Seek(reader.BaseStream.Position + 16, SeekOrigin.Begin);
-                filenames[i] = filename;
-            }
-            return filenames;
+            string tempDir = $@"{Path.GetTempPath()}\Vsn_Sakuna\{fileName}";
+            if (!Directory.Exists(tempDir)) Directory.CreateDirectory(tempDir);
+            string TempFile = $@"{tempDir}\flag.vsn";
+            StreamWriter StreamWriter = File.AppendText(TempFile);
+            StreamWriter.WriteLine(flag);
+            StreamWriter.Flush();
+            StreamWriter.Close();
+        }
+
+        static void CreateSort(string sortString, string fileName)
+        {
+            string tempDir = $@"{Path.GetTempPath()}\Vsn_Sakuna\{fileName}";
+            if (!Directory.Exists(tempDir)) Directory.CreateDirectory(tempDir);
+            string tempFile = $@"{tempDir}\sort.vsn";
+            StreamWriter StreamWriter_ = File.AppendText(tempFile);
+            StreamWriter_.WriteLine(fileName + "\\" + sortString);
+            StreamWriter_.Flush();
+            StreamWriter_.Close();
         }
     }
 }
