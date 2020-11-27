@@ -19,7 +19,7 @@ Additional parameters:
 
 # Notes:
 
-This tool uses [lz4net](https://github.com/MiloszKrajewski/lz4net). 
-This tool create a cache during extract archivies. It can be finded in Temp folder on system drive (Example: C:\Users\Username\Appdata\Local\Temp\Vsn_Sakuna). This cache uses to keep information about files flags and sort filenames.
+- This tool uses [lz4net](https://github.com/MiloszKrajewski/lz4net). 
+- **sakunaTool** create a cache during extract archivies. It can be finded in Temp folder on system drive (Example: C:\Users\Username\Appdata\Local\Temp\Vsn_Sakuna). This cache uses to keep information about files flags and sort filenames.
 
 > Thanks to **Visntse** for fixes some bugs!
