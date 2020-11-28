@@ -9,7 +9,7 @@ sakunaTool.exe [argument] <archive> [additional parameter]
 
 Arguments:
 -e:      Extracts all files
--p:      Packages a folder to a ARC
+-p:      Packages a folder to ARC
 -i:      Info about archive
 
 Additional parameters:
