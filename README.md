@@ -1,7 +1,3 @@
-# sakunaTool
-
-Tool for extraction and packing .arc archivies of **Sakuna of Rice and Ruin** game.
-
 # Usage:
 
 ```sh
