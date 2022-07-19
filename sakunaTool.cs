@@ -11,7 +11,7 @@ namespace sakunaTool
     {
         static void Main(string[] args)
         {
-            if (args == null || args.Length < 2)
+            if (args == null || args.Length < 1)
             {
                 PrintUsage();
                 return;
@@ -36,6 +36,15 @@ namespace sakunaTool
                 else if (args[3] == "-nocompress")
                 {
                     ArcPack(args[1], args[2], false);
+                    return;
+                }
+            }
+            else
+            {
+                string ext = Path.GetFileNameWithoutExtension(args[0]);
+                if(ext == ".arc")
+                {
+                    ArcExtract(args[0]);
                     return;
                 }
             }
